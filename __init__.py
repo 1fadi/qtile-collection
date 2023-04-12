@@ -1,4 +1,5 @@
 from .clickable_clock import ClickableClock
+from .vpn import VPN
 
 widget_defaults = dict(
     font="FiraCode Nerd Font Mono",
@@ -7,6 +8,7 @@ widget_defaults = dict(
 )
 
 __all__ = [
+    "widget_defaults",
     "ClickableClock",
-    "widget_defaults"
+    "VPN",
 ]
