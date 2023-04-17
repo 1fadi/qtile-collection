@@ -91,13 +91,11 @@ class Battery(base._Widget):
         if self.notify and percent < self.warn_below:
             self._notify(percent)
         self.configure_(percent, charging)
-        logger.exception("this was executed")
         self.draw_battery(percent, charging)
 
     def configure_(self, percent, plugged):
         if plugged:
             self.foreground = self.charging_fg
-            pass
         elif percent <= self.warn_below:
             self.foreground = self.low_foreground
         else:
