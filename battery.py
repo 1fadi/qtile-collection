@@ -1,5 +1,8 @@
 from libqtile.widget import base
 from libqtile.log_utils import logger
+from libqtile.utils import send_notification
+from libqtile import bar
+
 import math
 import cairocffi as cairo
 
@@ -7,44 +10,121 @@ from utils import bat
 
 
 class Battery(base._Widget):
-    """A widget to display battery."""
+    """A widget to display a nice battery.
+
+    requirements: psutil
+    optional: dbus-next (used to send notification).
+    """
 
     orientations = base.ORIENTATION_HORIZONTAL
     defaults = [
-        ("padding", 4, ""),
-        ("foreground", "ffffff", "Battery color in normal mode."),
-        ("charging_fg", "02a724", "foreground color when battery is charging."),
-        ("update_interval", 30, "time to wait until the widgets refreshes."),
-        ("low_foreground", "ff0000", "change color when battery is low."),
-        ("warn_below", 10, "battery level to indicate battery is low."),
+        (
+            "padding",
+            4,
+            "padding on either side of of the widget."
+        ),
+        (
+            "foreground",
+            "ffffff",
+            "Battery color in normal mode."
+        ),
+        (
+            "charging_fg",
+            "02a724",
+            "foreground color when battery is charging."
+        ),
+        (
+            "update_interval",
+            30,
+            "time to wait until the widgets refreshes."
+        ),
+        (
+            "low_foreground",
+            "ff0000",
+            "change color when battery is low."
+        ),
+        (
+            "warn_below",
+            10,
+            "battery level to indicate battery is low."
+        ),
+        (
+            "notify",
+            False,
+            "send a notification when battery is low."
+        ),
+        (
+            "notification_timeout",
+            10,
+            "time in seconds to display notification."
+        ),
     ]
 
     def __init__(self, **config):
-        base._Widget.__init__(self, 1, **config)
+        self.widget_width = 36
+        base._Widget.__init__(self, bar.CALCULATED, **config)
         self.add_defaults(Battery.defaults)
-        self.linewidth = 36
-        self.length = self.padding * 2 + self.linewidth
-        self.HEIGHT = 16
+
+        self.length = self.padding * 2 + self.widget_width
+        self.HEIGHT = 16  # widgets height
+        self.BAR_WIDTH = 30  # battery bar
+
+        self._has_notified = False
+        self.timeout = int(self.notification_timeout * 1000)
+
+        self._foreground = self.foreground
+
+    def _notify(self, percent):
+        if not self._has_notified:
+            send_notification(
+                "Warning",
+                f"Battery at {percent}%\ncharge me baby!",
+                urgent=True,
+                timeout=self.timeout
+            )
+            self._has_notified = True
+        else:
+            self._has_notified = False
+
+    def update(self):
+        percent, charging = self.get_bat()
+        if self.notify and percent < self.warn_below:
+            self._notify(percent)
+        self.configure_(percent, charging)
+        logger.exception("this was executed")
+        self.draw_battery(percent, charging)
+
+    def configure_(self, percent, plugged):
+        if plugged:
+            self.foreground = self.charging_fg
+            pass
+        elif percent <= self.warn_below:
+            self.foreground = self.low_foreground
+        else:
+            self.foreground = self._foreground
+
+    def calculate_length(self):
+        if self.bar.horizontal:
+            return (self.padding * 2) + self.widget_width
+        else:
+            return 0
 
     def draw(self):
         percent, charging = self.get_bat()
-        if charging:
-            self.foreground = self.charging_fg
-        elif percent <= self.warn_below:
-            self.foreground = self.low_foreground
-        self.draw_battery(percent)
+        self.configure_(percent, charging)
+        self.draw_battery(percent, charging)
 
-    def draw_battery(self, percent):
+    def draw_battery(self, percent, charging):
         self.drawer.clear(self.background or self.bar.background)
         if self.bar.horizontal:
-            PERCENT = 30 / 100 * percent
+            PERCENT = self.BAR_WIDTH / 100 * percent
             y_margin = (self.bar.height - self.HEIGHT) / 2
 
             self.drawer.set_source_rgb("8c8c8c")
             self._fill_body(
                 1,
                 y_margin,
-                width=30,
+                width=self.BAR_WIDTH,
                 height=self.HEIGHT,
                 linewidth=1
             )
@@ -52,14 +132,14 @@ class Battery(base._Widget):
             self._border(
                 1,
                 y_margin,
-                width=30,
+                width=self.BAR_WIDTH,
                 height=self.HEIGHT,
                 linewidth=2.6
             )
             if percent <= self.warn_below:
                 self.drawer.set_source_rgb(self.low_foreground)
             else:
-                self.drawer.set_source_rgb("ff8c1a")
+                self.drawer.set_source_rgb(self.foreground if charging else "ff8c1a")
             self._fill_body(
                 2,
                 y_margin,
@@ -71,35 +151,38 @@ class Battery(base._Widget):
             self._border(
                 1,
                 y_margin,
-                width=30,
+                width=self.BAR_WIDTH,
                 height=self.HEIGHT,
                 linewidth=0.6
             )
             self.drawer.set_source_rgb(self.foreground)
             self._fill_body(
-                28,
+                self.BAR_WIDTH - 2,
                 y_margin + 1,
                 width=8.3,
-                height=self.HEIGHT -2,
+                height=self.HEIGHT - 2,
                 linewidth=5
             )
-            self.drawer.ctx.select_font_face("sans",cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
+            self.drawer.ctx.select_font_face(
+                "sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD
+            )
             self.drawer.ctx.set_font_size(12)
-            self.drawer.ctx.move_to(4, self.HEIGHT)
+            self.drawer.ctx.move_to(5, self.HEIGHT)
             self.drawer.set_source_rgb("ffffff")
             self.drawer.ctx.show_text(str(percent))
 
             self.drawer.draw(
-                offsetx=self.offset + self.padding, offsety=self.offsety, width=self.length
+                offsetx=self.offset + self.padding,
+                offsety=self.offsety,
+                width=self.length
             )
 
     def get_bat(self):
         return bat()
 
     def _rounded_body(self, x, y, width, height, linewidth):
-        y_margin = (self.bar.height - height) / 2
-        aspect = 1.0
-        corner_radius = height / 4.0
+        aspect = 0.8
+        corner_radius = height / 5.0
         radius = corner_radius / aspect
         degrees = math.pi / 180.0
 
@@ -146,22 +229,6 @@ class Battery(base._Widget):
         self.drawer.ctx.fill()
 
     def timer_setup(self):
-        def on_done(future):
-            try:
-                result = future.result()
-            except Exception:
-                result = None
-                logger.exception("line 154")
-
-            if result is not None:
-                try:
-                    self.update(result)
-
-                    if self.update_interval is not None:
-                        self.timeout_add(self.update_interval, self.timer_setup)
-
-                except Exception:
-                    logger.exception("Failed to reschedule.")
-
-        self.future = self.qtile.run_in_executor(self.draw)
-        self.future.add_done_callback(on_done)
+        self.update()
+        if self.update_interval is not None:
+            self.timeout_add(self.update_interval, self.timer_setup)
