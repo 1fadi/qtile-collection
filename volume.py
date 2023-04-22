@@ -9,7 +9,10 @@ import re
 
 
 class Volume(base._Widget):
-    """A widget to display a dynamic volume icon.""" 
+    """
+    A widget to display a dynamic volume icon.
+    uses 'amixer sget' command to get the volume level.
+    """ 
 
     defaults = [
         ("padding", 4, "padding"),
