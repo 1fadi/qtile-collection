@@ -83,6 +83,7 @@ class Volume(base._Widget):
         center = x1 + (self.WIDTH / 3)
         self.drawer.ctx.set_line_width(1)
         if 0 < vol <= 33 or vol > 33:
+            self.drawer.ctx.new_sub_path()
             self.drawer.ctx.arc(
                 center,
                 self.bar.height / 2,
@@ -91,6 +92,7 @@ class Volume(base._Widget):
                 math.pi /4,
             )
         if 33 < vol <= 66 or vol > 66:
+            self.drawer.ctx.new_sub_path()
             self.drawer.ctx.arc(
                 center,
                 self.bar.height / 2,
@@ -99,6 +101,7 @@ class Volume(base._Widget):
                 math.pi / 3,
             )
         if 66 < vol <= 100:
+            self.drawer.ctx.new_sub_path()
             self.drawer.ctx.arc(
                 center,
                 self.bar.height /2,
