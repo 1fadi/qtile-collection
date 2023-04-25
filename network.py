@@ -24,9 +24,10 @@ class Network(base._Widget):
         ("size", 14, "Size of the widget."),
     ]
 
-    def __init__(self, **config):
+    def __init__(self, interfaces, **config):
         base._Widget.__init__(self, bar.CALCULATED, **config)
         self.add_defaults(Network.defaults)
+        self.interfaces = interfaces
         self.HEIGHT = self.WIDTH = self.size
         self.margin = 5
         self._foreground = self.foreground if self.foreground else "d5d5d5"
