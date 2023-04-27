@@ -9,9 +9,8 @@ import re
 
 
 class Volume(base._Widget):
-    """
-    A widget to display a dynamic volume icon.
-    uses 'amixer sget' command to get the volume level.
+    """A widget to display a dynamic volume icon.
+    uses "amixer sget" command to get the volume level.
     """ 
 
     defaults = [
@@ -26,10 +25,10 @@ class Volume(base._Widget):
     def __init__(self, **config):
         base._Widget.__init__(self, bar.CALCULATED, **config)
         self.add_defaults(Volume.defaults)
-        self.margin = 5
+        self.margin = 2
         self.WIDTH = self.size
         self.HEIGHT = self.calc_height()
-        self.widget_width = self.WIDTH + self.margin
+        self.widget_width = self.WIDTH + self.margin * 2
         self.length = self.padding * 2 + self.widget_width
 
     def get_volume(self, channel):
