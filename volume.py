@@ -34,12 +34,15 @@ class Volume(base._Widget):
     def get_volume(self, channel):
         output = subprocess.getoutput(f"amixer sget {channel}")
         re_vol = re.compile(r"(\d?\d?\d?)%")
-        try:
-            vol = int(re_vol.search(output).groups()[0])
-        except:
+        re_mute = re.compile(r"(\[on\]|\[off\])")
+        
+        results = re_vol.search(output)
+        if results is None:
             logger.exception("Error: couldn't get volume level.")
+            return 0, ""
         else:
-            return vol
+            vol = int(re_vol.search(output).groups()[0])
+            return vol, re_mute.search(output).groups()[0]
 
     def calculate_length(self):
         if self.bar.horizontal:
@@ -48,10 +51,10 @@ class Volume(base._Widget):
             return 0
 
     def draw(self):
-        vol = self.get_volume(self.channel)
-        self.draw_icon(vol)
+        vol, status = self.get_volume(self.channel)
+        self.draw_icon(vol, status)
 
-    def draw_icon(self, vol):
+    def draw_icon(self, vol, status):
         y_margin = (self.bar.height - self.HEIGHT) / 2
         mp = self.margin + self.padding
 
@@ -109,6 +112,25 @@ class Volume(base._Widget):
                 math.pi /2.5,
             )
         self.drawer.ctx.stroke()
+
+        if status == "[off]":
+            self.drawer.ctx.set_line_width(1)
+            self.drawer.set_source_rgb("000000")
+            self.drawer.ctx.move_to(mp + self.WIDTH, y2)
+            self.drawer.ctx.line_to(mp, y3)
+            self.drawer.ctx.stroke()
+
+            self.drawer.ctx.set_line_width(2)
+            self.drawer.set_source_rgb(self.foreground)
+            self.drawer.ctx.move_to(mp + self.WIDTH, y2  + 1)
+            self.drawer.ctx.line_to(mp, y3 + 1)
+            self.drawer.ctx.stroke()
+
+            self.drawer.ctx.set_line_width(1)
+            self.drawer.set_source_rgb("000000")
+            self.drawer.ctx.move_to(mp + self.WIDTH, y2 + 2)
+            self.drawer.ctx.line_to(mp, y3 + 2)
+            self.drawer.ctx.stroke()
 
         self.drawer.draw(
             offsetx=self.offset,
