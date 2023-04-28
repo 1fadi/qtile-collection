@@ -29,7 +29,7 @@ class Network(base._Widget):
         self.add_defaults(Network.defaults)
         self.interfaces = interfaces
         self.HEIGHT = self.WIDTH = self.size
-        self.margin = 5
+        self.margin = 2
         self._foreground = self.foreground if self.foreground else "d5d5d5"
 
     def calculate_length(self):
@@ -86,7 +86,7 @@ class Network(base._Widget):
             case "Ethernet":
                 self.draw_ether()
             case _:
-                pass
+                self.draw_ether(disconnected=True)
 
         self.drawer.draw(
             offsetx=self.offset,
@@ -94,26 +94,64 @@ class Network(base._Widget):
             width=self.length
         )
 
-    def draw_ether(self):
+    def draw_ether(self, disconnected=False):
+        mp = self.margin + self.padding
         self.drawer.set_source_rgb(
             self.foreground if self.foreground else "d5d5d5"
         )
         self._rounded_rect(
-            self.margin + self.padding,
+            mp,
             self.bar.height / 2 - self.WIDTH / 2,
             self.WIDTH,
             self.HEIGHT / 2,
             1
         )
         self.drawer.ctx.move_to(
-            self.margin + self.padding + self.WIDTH / 2,
+            mp + self.WIDTH / 2,
             self.bar.height / 2
         )
         self.drawer.ctx.line_to(
-            self.margin + self.padding + self.WIDTH / 2,
+            mp + self.WIDTH / 2,
             self.bar.height / 2 + self.HEIGHT / 2
         )
         self.drawer.ctx.stroke()
+
+        if disconnected:
+            self.drawer.set_source_rgb("000000")
+            self.drawer.ctx.set_line_width(1)
+            self.drawer.ctx.move_to(
+                mp + self.WIDTH,
+                self.bar.height / 2 - self.HEIGHT / 2
+            )
+            self.drawer.ctx.line_to(
+                mp,
+                self.bar.height / 2 + self.HEIGHT / 2
+            )
+            self.drawer.ctx.stroke()
+
+            self.drawer.set_source_rgb("ff0000")
+            self.drawer.ctx.set_line_width(2)
+            self.drawer.ctx.move_to(
+                mp + self.WIDTH,
+                self.bar.height / 2 - self.HEIGHT / 2 + 0.5
+            )
+            self.drawer.ctx.line_to(
+                mp,
+                self.bar.height / 2 + self.HEIGHT / 2 + 0.5
+            )
+            self.drawer.ctx.stroke()
+
+            self.drawer.set_source_rgb("000000")
+            self.drawer.ctx.set_line_width(1)
+            self.drawer.ctx.move_to(
+                mp + self.WIDTH,
+                self.bar.height / 2 - self.HEIGHT / 2 + 1
+            )
+            self.drawer.ctx.line_to(
+                mp,
+                self.bar.height / 2 + self.HEIGHT / 2 + 1
+            )
+            self.drawer.ctx.stroke()
 
     def draw_wifi(self):
         y_margin = self.bar.height / 2 + self.HEIGHT /2
