@@ -31,6 +31,10 @@ class Volume(base._Widget):
         self.widget_width = self.WIDTH + self.margin * 2
         self.length = self.padding * 2 + self.widget_width
 
+        self.add_callbacks({
+            "Button1": self.toggle_mute,
+        })
+
     def get_volume(self, channel):
         output = subprocess.getoutput(f"amixer sget {channel}")
         re_vol = re.compile(r"(\d?\d?\d?)%")
@@ -43,6 +47,9 @@ class Volume(base._Widget):
         else:
             vol = int(re_vol.search(output).groups()[0])
             return vol, re_mute.search(output).groups()[0]
+
+    def toggle_mute(self):
+        subprocess.run(["amixer", "set", self.channel, "toggle"])
 
     def calculate_length(self):
         if self.bar.horizontal:
