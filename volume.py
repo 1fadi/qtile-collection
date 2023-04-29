@@ -11,6 +11,10 @@ import re
 class Volume(base._Widget):
     """A widget to display a dynamic volume icon.
     uses "amixer sget" command to get the volume level.
+
+    Even when the sound is muted, the volume level can still
+    be indicated by the icon, providing the convenience of knowing how
+    loud the sound would be before unmuting it.
     """ 
 
     defaults = [
