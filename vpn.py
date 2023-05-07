@@ -8,7 +8,7 @@ class VPN(base.ThreadPoolText):
     defaults = [
         (
             "on",
-            "VPN ON",
+            "VPN",
             "string to indicate the device is connected to VPN"
         ),
         (
