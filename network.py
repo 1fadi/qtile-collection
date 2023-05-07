@@ -34,7 +34,7 @@ class Network(base._Widget):
 
     def calculate_length(self):
         if self.bar.horizontal:
-            return (self.padding * 2) + self.WIDTH + self.margin * 2
+            return self.padding * 2 + self.WIDTH + self.margin * 2
         else:
             return 0
 
