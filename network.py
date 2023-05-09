@@ -49,7 +49,7 @@ class Network(base._Widget):
                 port = 80
                 server_addr = (host, port)
                 socket_obj.connect(server_addr)
-            except OSError:
+            except (OSError, TimeoutError):
                 return False
             else:
                 socket_obj.close()
@@ -77,10 +77,10 @@ class Network(base._Widget):
         else:
             return "NO CONNECTION"
 
-    def draw(self):
+    def draw(self, connection=None):
         self.drawer.clear(self.background or self.bar.background)
 
-        match self.parse_connection():
+        match connection:
             case "Wifi":
                 self.draw_wifi()
             case "Ethernet":
@@ -232,6 +232,21 @@ class Network(base._Widget):
         self.drawer.ctx.close_path()
 
     def timer_setup(self):
-        self.draw()
-        if self.update_interval is not None:
-            self.timeout_add(self.update_interval, self.timer_setup)
+        def on_done(future):
+            try:
+                result = future.result()
+            except Exception:
+                result = None
+
+            if result is not None:
+                self.draw(connection=result)
+                try:
+                    if self.update_interval is not None:
+                        self.timeout_add(self.update_interval, self.timer_setup)
+                except Exception:
+                    logger.exception("Failed to reschedule.")
+            else:
+                pass
+
+        self.future = self.qtile.run_in_executor(self.parse_connection)
+        self.future.add_done_callback(on_done)
