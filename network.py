@@ -38,55 +38,50 @@ class Network(base._Widget):
         else:
             return 0
 
-    def parse_connection(self):
-        
-        def ping():
-            """checks if there is a connection"""
-            try:
-                socket.setdefaulttimeout(1)
-                socket_obj = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                host = "1.1.1.1"
-                port = 80
-                server_addr = (host, port)
-                socket_obj.connect(server_addr)
-            except (OSError, TimeoutError):
-                return False
-            else:
-                socket_obj.close()
-                return True
-        
-        def find_interface(interfaces):
-            """returns the type of connection"""
-            gateways = netifaces.gateways()
-            result = list(
-                filter(lambda x: (x == gateways["default"][2][1]), interfaces)
-            )
-            if len(result) < 1:
-                logger.exception(f"{self}; interfaces not found.")
-                return None
-            return result[0]
-            
-        if ping():
-            network = find_interface(self.interfaces)
-            if not network:
-                return None
-            elif network[:1] == "e":
-                return "Ethernet"
-            elif network[:1] == "w":
-                return "Wifi"
+    def ping(self):
+        """checks if there is a connection"""
+        try:
+            socket.setdefaulttimeout(1)
+            socket_obj = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            host = "1.1.1.1"
+            port = 80
+            server_addr = (host, port)
+            socket_obj.connect(server_addr)
+        except (OSError, TimeoutError):
+            return False
         else:
-            return "NO CONNECTION"
+            socket_obj.close()
+            return True
+        
+    def validate_interface(self):
+        if not all(i in netifaces.interfaces() for i in self.interfaces):
+            logger.exception(f"{self}; interface/s not found.")
+            return None
+        gateways = netifaces.gateways()
+        try:
+            NIC = gateways["default"][2][1]
+        except KeyError:
+            logger.exception(f"{self}; interface is down.")
+            return None
+        else:
+            if NIC[:1] == "w":
+                return "wifi"
+            elif NIC[:1] == "e":
+                return "eth"
 
     def draw(self, connection=None):
         self.drawer.clear(self.background or self.bar.background)
 
-        match connection:
-            case "Wifi":
+        network = self.validate_interface()
+        if network:
+            if network == "wifi":
                 self.draw_wifi()
-            case "Ethernet":
+                if connection is False:
+                    self._draw_warning()
+            elif network == "eth":
                 self.draw_ether()
-            case _:
-                self.draw_ether(disconnected=True)
+        else:
+            self.draw_ether(disconnected=True)
 
         self.drawer.draw(
             offsetx=self.offset,
@@ -192,6 +187,24 @@ class Network(base._Widget):
         )
         self.drawer.ctx.stroke()
 
+    def _draw_warning(self):
+        self.drawer.set_source_rgb(
+            self.foreground if self.foreground else "d5d5d5"
+        )
+        self.drawer.ctx.set_line_width(1.5)
+        self.drawer.ctx.move_to(self.length * 0.1, self.bar.height * 0.45)
+        self.drawer.ctx.line_to(self.length * 0.1, self.bar.height * 0.7)
+        self.drawer.ctx.stroke()
+        self.drawer.ctx.new_sub_path()
+        self.drawer.ctx.arc(
+            self.length * 0.1,
+            self.bar.height * 0.85,
+            self.WIDTH * 0.1,
+            math.pi / 2,
+            0
+        )
+        self.drawer.ctx.fill()
+
     def _rounded_rect(self, x, y, width, height, linewidth):
         aspect = 0.8
         corner_radius = height / 5.0
@@ -236,7 +249,7 @@ class Network(base._Widget):
             try:
                 result = future.result()
             except Exception:
-                result = None
+                result = False
 
             if result is not None:
                 self.draw(connection=result)
@@ -248,5 +261,5 @@ class Network(base._Widget):
             else:
                 pass
 
-        self.future = self.qtile.run_in_executor(self.parse_connection)
+        self.future = self.qtile.run_in_executor(self.ping)
         self.future.add_done_callback(on_done)
