@@ -26,19 +26,20 @@ class Volume(base._Widget):
         ("channel", "Master", "channel"),
     ]
 
-    def __init__(self, padding=None, **config):
+    def __init__(self, **config):
         base._Widget.__init__(self, bar.CALCULATED, **config)
         self.add_defaults(Volume.defaults)
-        self.padding = padding if padding else 4
         self.margin = 2
         self.WIDTH = self.size
-        self.HEIGHT = self.calc_height()
         self.widget_width = self.WIDTH + self.margin * 2
-        self.length = self.padding * 2 + self.widget_width
 
         self.add_callbacks({
             "Button1": self.toggle_mute,
         })
+
+    def _configure(self, qtile, bar):
+        base._Widget._configure(self, qtile, bar)
+        self.HEIGHT = self.calc_height()
 
     def get_volume(self, channel):
         output = subprocess.getoutput(f"amixer sget {channel}")
@@ -58,7 +59,7 @@ class Volume(base._Widget):
 
     def calculate_length(self):
         if self.bar.horizontal:
-            return (self.padding * 2) + self.widget_width
+            return self.padding * 2 + self.widget_width
         else:
             return 0
 
