@@ -82,6 +82,11 @@ class Battery(base._Widget):
             False,
             "bool. add a border to the battery icon."
         ),
+        (
+            "hide_full",
+            False,
+            "bool. hide percentage when battery is full."
+        ),
     ]
 
     def __init__(self, **config):
@@ -199,7 +204,10 @@ class Battery(base._Widget):
                 (self.bar.height + height) / 2
             )
             self.rgb(self.font_color or self.bar.background)
-            self.drawer.ctx.show_text(text)
+            if self.hide_full and percent > 99:
+                pass
+            else:
+                self.drawer.ctx.show_text(text)
 
             self.drawer.draw(
                 offsetx=self.offset,
